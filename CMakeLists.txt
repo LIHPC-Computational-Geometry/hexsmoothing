@@ -1,7 +1,9 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.11)
 project(hexsmoothing)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+option(HEXSMOOTHING_LIB_ONLY "Compile the hexsmoothing library only (no executables)" ON)
 
 include_directories(ext/stlbfgs)
 
@@ -29,3 +31,21 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(libhexsmoothing OpenMP::OpenMP_CXX)
 endif()
 
+if(${HEXSMOOTHING_LIB_ONLY} MATCHES OFF)
+  # we need a library to handle mesh loading
+  # download ultimaille and include it
+  include(FetchContent)
+  FetchContent_Declare(
+    ultimaille
+    URL https://github.com/ssloy/ultimaille/archive/17514ea34bad46f62ab3e3f08ca93c03c371bb18.zip # constexpr issues after this commit
+  )
+  FetchContent_MakeAvailable(ultimaille)
+  include_directories(${ultimaille_SOURCE_DIR})
+  # declare executables
+  add_executable(elliptic_smoothing ${SOURCES} bin/elliptic_smoothing.cpp)
+  target_link_libraries(elliptic_smoothing libhexsmoothing ultimaille)
+  add_executable(standard_smoother ${SOURCES} bin/standard_smoother.cpp)
+  target_link_libraries(standard_smoother libhexsmoothing ultimaille)
+  add_executable(vertex_based_smoothing ${SOURCES} bin/vertex_based_smoothing.cpp)
+  target_link_libraries(vertex_based_smoothing libhexsmoothing ultimaille)
+endif()
